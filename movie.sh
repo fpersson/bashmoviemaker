@@ -8,60 +8,66 @@
 #Licens: BSD
 #TODO: Exif-rotation?
 
-declare -i I
-declare -i J
-declare -i K
-declare -i L
+declare -i I=0
+declare -i J=0
+declare -i K=0
+declare -i L=0
 declare -i STILLS
 
 SIZE=640x480
-I=0
-J=0
-M=0
+TMP_DIR=$HOME/.movietmp/
 
-mkdir ./tmp
+if [ $1 == '--help' ]; then
+  echo "Usage: movie.sh path/to/image/dir/ dest/filename.mpg"
+  exit
+fi
 
-#skala om den svarta bakgrunden.
-convert -resize $SIZE ./back.png ./tmp/back.png
+SRC_DIR=$1
+DEST_FILE=$2
 
-for files in *.jpg; do
+mkdir $TMP_DIR
+
+#create a black background image
+convert -size $SIZE xc:black $TMP_DIR/back.png
+
+
+for files in $SRC_DIR/*.jpg; do
   I=$I+1
-  convert -resize $SIZE $files ./tmp/n$I.jpg;
-  composite -gravity center ./tmp/n$I.jpg ./tmp/back.png ./tmp/n$I.jpg;
+  convert -resize $SIZE $files $TMP_DIR/n$I.jpg;
+  composite -gravity center $TMP_DIR/n$I.jpg $TMP_DIR/back.png $TMP_DIR/n$I.jpg;
 done
 
 echo $I
 
 L=$I+1
 
-while [ $J -lt $I ]
-do
+while [ $J -lt $I ]; do
   J=$J+1
   K=$J+1
   if [ $K -lt $L ]
   then
-    mkdir ./M$K
+    mkdir $TMP_DIR/M$K
     echo "Doing morph " $J " of " $I " ... Please wait...."
-    convert -morph 100 ./tmp/n$J.jpg ./tmp/n$K.jpg ./M$K/morph.jpg
+    convert -morph 100 $TMP_DIR/n$J.jpg $TMP_DIR/n$K.jpg $TMP_DIR/M$K/morph.jpg
     STILLS=102
-    while [ $STILLS -lt 151 ]
-    do
-      cp ./tmp/n$K.jpg ./M$K/morph-$STILLS.jpg
+    #151 gives ~ 50 frames without any morphing....
+    while [ $STILLS -lt 151 ]; do
+      cp $TMP_DIR/n$K.jpg $TMP_DIR/M$K/morph-$STILLS.jpg
       STILLS=$STILLS+1
     done
     echo "Encode morph " $J " of " $I " ... Please wait...."
-    ffmpeg -s $SIZE -i ./M$K/morph-%d.jpg part$J.mpg
-    src=$src" "part$J.mpg
+    ffmpeg -s $SIZE -i $TMP_DIR/M$K/morph-%d.jpg $TMP_DIR/part$J.mpg
+    src=$src" "$TMP_DIR/part$J.mpg
     echo "Done..."
-    rm ./M$K/*.*
-    rmdir ./M$K
+    rm $TMP_DIR/M$K/*.*
+    rmdir $TMP_DIR/M$K
   fi
 done
 
-cat $src > final.mpg
-ffmpeg -i final.mpg -sameq output.mpg
+cat $src > $TMP_DIR/final.mpg
+ffmpeg -i $TMP_DIR/final.mpg -sameq $DEST_FILE
 
-rm part*.mpg
-rm final.mpg
-rm ./tmp/*.*
-rmdir ./tmp
+rm $TMP_DIR/part*.mpg
+rm $TMP_DIR/final.mpg
+rm $TMP_DIR/*.*
+rmdir $TMP_DIR
