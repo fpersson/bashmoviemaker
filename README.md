@@ -1,3 +1,5 @@
+Archived and not tested for a loooooooong time.
+
 mkmovie.sh
 
 Desc: A simple bashscript for merging a series of jpg-images to a mpg-movie with ImageMagick a ffmpg. The script was original writen in 2008 and published on my blog (http://perra.wordpress.com/2008/02/10/bash-trix/)
